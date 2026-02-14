@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#000125;overflow:hidden;font-family:monospace;display:flex;justify-content:center;align-items:center;height:100vh;width:100vw}
+
+    /* Matrix canvas */
+    canvas#c{position:absolute;top:0;left:0;z-index:0;opacity:0.25}
+
+    /* Floating hearts canvas */
+    canvas#hearts{position:absolute;top:0;left:0;z-index:1;pointer-events:none}
+
+    /* Ambient glow behind heart */
+    .glow-ring{
+      position:absolute;
+      width:260px;height:260px;
+      border-radius:50%;
+      background:radial-gradient(circle,rgba(255,0,68,.25) 0%,rgba(255,0,68,.08) 40%,transparent 70%);
+      animation:glowPulse 2s ease-in-out infinite;
+      z-index:2;
+      pointer-events:none;
+    }
+    @keyframes glowPulse{
+      0%,100%{transform:scale(1);opacity:.7}
+      50%{transform:scale(1.35);opacity:1}
+    }
+
+    /* Orbiting sparkles */
+    .sparkle-orbit{
+      position:absolute;
+      width:200px;height:200px;
+      z-index:3;
+      animation:orbitSpin 6s linear infinite;
+      pointer-events:none;
+    }
+    .sparkle-orbit.reverse{animation:orbitSpinR 8s linear infinite}
+    @keyframes orbitSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes orbitSpinR{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+
+    .sparkle{
+      position:absolute;
+      width:4px;height:4px;
+      background:#fff;
+      border-radius:50%;
+      box-shadow:0 0 6px 2px rgba(255,100,150,.8);
+      animation:twinkle 1.5s ease-in-out infinite alternate;
+    }
+    .sparkle:nth-child(1){top:0;left:50%;animation-delay:0s}
+    .sparkle:nth-child(2){top:50%;right:0;animation-delay:.3s}
+    .sparkle:nth-child(3){bottom:0;left:50%;animation-delay:.6s}
+    .sparkle:nth-child(4){top:50%;left:0;animation-delay:.9s}
+    .sparkle:nth-child(5){top:15%;right:10%;animation-delay:.2s}
+    .sparkle:nth-child(6){bottom:15%;left:10%;animation-delay:.7s}
+    @keyframes twinkle{0%{opacity:.3;transform:scale(.6)}100%{opacity:1;transform:scale(1.3)}}
+
+    .wrapper{position:relative;display:flex;justify-content:center;align-items:center;z-index:4}
+
+    .heart{
+      position:relative;
+      width:100px;height:100px;
+      background:#f04;
+      transform:rotate(-45deg);
+      box-shadow:0 0 40px #f04, 0 0 80px rgba(255,0,68,.3);
+      animation:b .8s infinite alternate;
+      display:flex;justify-content:center;align-items:center;
+    }
+    .heart::before,.heart::after{content:"";position:absolute;width:100px;height:100px;background:#f04;border-radius:50%}
+    .heart::before{top:-50px;left:0}.heart::after{top:0;left:50px}
+
+    .text-container{
+      transform:rotate(45deg);
+      z-index:10;
+      text-align:center;
+      color:#fff;
+      margin-top:-18px;
+    }
+
+    h1{font-size:20px;margin:0;text-shadow:0 0 10px #fff, 0 0 30px rgba(255,255,255,.4)}
+
+    .feature{
+      position:absolute;
+      background:rgba(255,0,64,.08);
+      border:2px solid rgba(255,0,68,.6);
+      padding:12px 16px;
+      border-radius:12px;
+      font-size:14px;
+      white-space:nowrap;
+      opacity:0;
+      left:50%;top:50%;
+      transform:translate(-50%,-50%);
+      transition:all .8s cubic-bezier(.17,.88,.32,1.27);
+      color:#fff;
+      backdrop-filter:blur(4px);
+      box-shadow:0 0 15px rgba(255,0,68,.15);
+    }
+    .feature:hover{
+      border-color:#fff;
+      box-shadow:0 0 25px rgba(255,0,68,.4);
+      transform-origin:center center;
+    }
+
+    .f1.show{transform:translate(-270px,-130px);opacity:1}
+    .f2.show{transform:translate(80px,-130px);opacity:1}
+    .f3.show{transform:translate(-265px,30px);opacity:1}
+    .f4.show{transform:translate(90px,30px);opacity:1}
+    .f5.show{transform:translate(-50%,140px);opacity:1;background:#f04;font-weight:700;box-shadow:0 0 30px rgba(255,0,68,.5)}
+
+    .brand{
+      position:fixed;
+      bottom:60px;
+      right:50px;
+      opacity:0;
+      transition:1s;
+      color:#fff;
+      font-size:20px;
+      font-weight:bold;
+      text-shadow:0 0 15px rgba(255,255,255,0.3);
+    }
+    .v{opacity:1!important}
+
+    /* Vignette overlay */
+    .vignette{
+      position:fixed;
+      top:0;left:0;width:100%;height:100%;
+      background:radial-gradient(ellipse at center,transparent 50%,rgba(0,1,37,.7) 100%);
+      z-index:0;
+      pointer-events:none;
+    }
+
+    /* Intro fade-in */
+    .wrapper,.glow-ring,.sparkle-orbit{
+      animation:fadeIn 1.5s ease-out forwards;
+    }
+    @keyframes fadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+    @keyframes b{to{transform:scale(1.1) rotate(-45deg);box-shadow:0 0 70px #f04, 0 0 120px rgba(255,0,68,.3)}}
+
+    /* Click ripple effect */
+    .ripple{
+      position:fixed;
+      border:2px solid rgba(255,0,68,.6);
+      border-radius:50%;
+      pointer-events:none;
+      z-index:100;
+      animation:rippleAnim .8s ease-out forwards;
+    }
+    @keyframes rippleAnim{
+      0%{width:0;height:0;opacity:1}
+      100%{width:150px;height:150px;opacity:0;margin-top:-75px;margin-left:-75px}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <canvas id="hearts"></canvas>
+  <div class="vignette"></div>
+
+  <div class="glow-ring"></div>
+
+  <div class="sparkle-orbit">
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+  </div>
+  <div class="sparkle-orbit reverse" style="width:280px;height:280px">
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+    <div class="sparkle"></div>
+  </div>
+
+  <div class="wrapper">
+    <div class="heart"><div class="text-container"><h1>Мурлыка</h1></div></div>
+    <div class="feature f1">Очень красивая</div>
+    <div class="feature f2">очень милая</div>
+    <div class="feature f3">Очень добрая</div>
+    <div class="feature f4">Широкая улыбка</div>
+    <div class="feature f5">ТЫ МНЕ ОЧЕНЬ НРАВИШЬСЯ!</div>
+  </div>
+
+
+  <script>
+    /* ===== Matrix Rain ===== */
+    const c = document.getElementById("c"), ctx = c.getContext("2d");
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    const s = "01❤", f = 14, cl = c.width / f;
+    const d = Array(Math.floor(cl)).fill(1);
+
+    function drawMatrix() {
+      ctx.fillStyle = "rgba(0,1,37,0.1)";
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.font = f + "px monospace";
+      d.forEach((y, i) => {
+        const ch = s[Math.floor(Math.random() * s.length)];
+        // Occasional pink hearts in the rain
+        ctx.fillStyle = ch === "❤" ? "rgba(255,0,68,0.7)" : "#0064ff";
+        ctx.fillText(ch, i * f, y * f);
+        if (y * f > c.height && Math.random() > 0.975) d[i] = 0;
+        d[i]++;
+      });
+    }
+    setInterval(drawMatrix, 50);
+
+    /* ===== Floating Hearts Particles ===== */
+    const hc = document.getElementById("hearts"), hctx = hc.getContext("2d");
+    hc.width = window.innerWidth; hc.height = window.innerHeight;
+
+    class FloatingHeart {
+      constructor() { this.reset(); this.y = Math.random() * hc.height; }
+      reset() {
+        this.x = Math.random() * hc.width;
+        this.y = hc.height + 20;
+        this.size = Math.random() * 12 + 6;
+        this.speed = Math.random() * 1.2 + 0.3;
+        this.opacity = Math.random() * 0.4 + 0.1;
+        this.drift = (Math.random() - 0.5) * 0.5;
+        this.wobble = Math.random() * Math.PI * 2;
+        this.wobbleSpeed = Math.random() * 0.02 + 0.01;
+      }
+      update() {
+        this.y -= this.speed;
+        this.wobble += this.wobbleSpeed;
+        this.x += this.drift + Math.sin(this.wobble) * 0.3;
+        if (this.y < -20) this.reset();
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.translate(this.x, this.y);
+        ctx.fillStyle = `rgba(255,${Math.floor(Math.random()*40)},${Math.floor(60+Math.random()*20)},1)`;
+        ctx.beginPath();
+        const s = this.size;
+        ctx.moveTo(0, s * 0.3);
+        ctx.bezierCurveTo(-s * 0.5, -s * 0.3, -s, s * 0.1, 0, s);
+        ctx.bezierCurveTo(s, s * 0.1, s * 0.5, -s * 0.3, 0, s * 0.3);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    const floatingHearts = Array.from({ length: 25 }, () => new FloatingHeart());
+
+    function drawHearts() {
+      hctx.clearRect(0, 0, hc.width, hc.height);
+      floatingHearts.forEach(h => { h.update(); h.draw(hctx); });
+      requestAnimationFrame(drawHearts);
+    }
+    drawHearts();
+
+    /* ===== Feature reveal + brand ===== */
+    window.onload = () => {
+      const features = document.querySelectorAll('.feature');
+      const brand = document.getElementById('b');
+      features.forEach((el, i) => setTimeout(() => el.classList.add('show'), 1000 + i * 600));
+      setTimeout(() => brand.classList.add('v'), 3900);
+    };
+
+    /* ===== Click ripple effect ===== */
+    document.addEventListener('click', (e) => {
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      ripple.style.left = e.clientX + 'px';
+      ripple.style.top = e.clientY + 'px';
+      document.body.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 800);
+    });
+
+    /* ===== Resize handler ===== */
+    window.addEventListener('resize', () => {
+      c.width = hc.width = window.innerWidth;
+      c.height = hc.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
